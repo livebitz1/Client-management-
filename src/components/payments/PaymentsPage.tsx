@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Search, Trash2, Edit, CreditCard, ArrowDownCircle, Filter } from 'lucide-react'
+import { Plus, Search, Trash2, Edit, CreditCard } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import Avatar from '@/components/ui/Avatar'
 import Badge from '@/components/ui/Badge'
@@ -42,9 +42,7 @@ export default function PaymentsPage() {
     try {
       setLoading(true)
       const [pay, c, p] = await Promise.all([getPayments(), getClients(), getProjects()])
-      setPayments(pay)
-      setClients(c)
-      setProjects(p)
+      setPayments(pay); setClients(c); setProjects(p)
     } catch { /* handled silently */ } finally {
       setLoading(false)
     }
@@ -67,12 +65,7 @@ export default function PaymentsPage() {
     setFiltered(data)
   }, [payments, search, statusFilter])
 
-  const openAdd = () => {
-    setEditingPayment(null)
-    setForm(BLANK_FORM)
-    setShowDialog(true)
-  }
-
+  const openAdd = () => { setEditingPayment(null); setForm(BLANK_FORM); setShowDialog(true) }
   const openEdit = (p: Payment) => {
     setEditingPayment(p)
     setForm({
@@ -88,23 +81,13 @@ export default function PaymentsPage() {
     if (!form.client_id || !form.amount) return
     try {
       setSaving(true)
-      const payload = {
-        ...form,
-        amount: parseFloat(form.amount) || 0,
-        project_id: form.project_id || null,
-      }
-      if (editingPayment) {
-        await updatePayment(editingPayment.id, payload)
-      } else {
-        await createPayment(payload)
-      }
+      const payload = { ...form, amount: parseFloat(form.amount) || 0, project_id: form.project_id || null }
+      if (editingPayment) { await updatePayment(editingPayment.id, payload) } else { await createPayment(payload) }
       setShowDialog(false)
       await load()
     } catch (e: unknown) {
       alert('Error: ' + (e instanceof Error ? e.message : 'Unknown error'))
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   const handleDelete = async (id: string) => {
@@ -118,33 +101,32 @@ export default function PaymentsPage() {
   }
 
   const clientProjects = projects.filter(p => p.client_id === form.client_id)
-
   const totalCompleted = filtered.filter(p => p.status === 'completed').reduce((s, p) => s + p.amount, 0)
   const totalPending = filtered.filter(p => p.status === 'pending').reduce((s, p) => s + p.amount, 0)
 
   if (loading) {
     return (
-      <div style={{ padding: '32px 28px' }}>
+      <div className="page-pad">
         {[1,2,3].map(i => <div key={i} style={{ height: 68, borderRadius: 12, background: 'rgba(255,255,255,0.03)', marginBottom: 8 }} />)}
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '32px 28px' }}>
+    <div className="page-pad">
       <PageHeader
         title="Payments"
         subtitle={`${payments.length} total transactions`}
         action={
           <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 10, fontSize: 14 }} onClick={openAdd}>
             <Plus size={16} />
-            Record Payment
+            <span>Record Payment</span>
           </button>
         }
       />
 
       {/* Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 24 }}>
+      <div className="grid-stats" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
         <div className="glass-card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total Collected</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#4ade80' }}>{formatCurrency(totalCompleted)}</div>
@@ -160,12 +142,12 @@ export default function PaymentsPage() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
           <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
           <input className="input-glass" style={{ paddingLeft: 36 }} placeholder="Search payments..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <select className="input-glass" style={{ width: 'auto', minWidth: 140 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <select className="input-glass" style={{ width: 'auto', minWidth: 130 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="all">All Status</option>
           <option value="completed">Completed</option>
           <option value="pending">Pending</option>
@@ -175,7 +157,7 @@ export default function PaymentsPage() {
       </div>
 
       {/* Table */}
-      <div className="glass-card" style={{ overflow: 'hidden' }}>
+      <div className="glass-card r-table-wrap" style={{ overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <EmptyState
             icon={CreditCard}
@@ -199,7 +181,7 @@ export default function PaymentsPage() {
             <tbody>
               {filtered.map((p) => (
                 <tr key={p.id} className="table-row-hover" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ padding: '14px 16px' }}>
+                  <td className="cell-primary" style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <Avatar name={p.client?.name || '?'} size={30} />
                       <div>
@@ -208,24 +190,24 @@ export default function PaymentsPage() {
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+                  <td data-label="Project" style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
                     {p.project?.name || <span style={{ color: 'rgba(255,255,255,0.25)' }}>—</span>}
                   </td>
-                  <td style={{ padding: '14px 16px' }}>
+                  <td data-label="Amount" style={{ padding: '14px 16px' }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: p.status === 'completed' ? '#4ade80' : p.status === 'pending' ? '#fbbf24' : p.status === 'refunded' ? '#94a3b8' : '#f87171' }}>
                       {formatCurrency(p.amount)}
                     </div>
                     {p.description && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{p.description}</div>}
                   </td>
-                  <td style={{ padding: '14px 16px' }}>
+                  <td data-label="Method" style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
                       <span>{METHOD_ICONS[p.payment_method]}</span>
                       {getStatusLabel(p.payment_method)}
                     </div>
                   </td>
-                  <td style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{formatDate(p.payment_date)}</td>
-                  <td style={{ padding: '14px 16px' }}><Badge status={p.status} /></td>
-                  <td style={{ padding: '14px 16px' }}>
+                  <td data-label="Date" style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{formatDate(p.payment_date)}</td>
+                  <td data-label="Status" style={{ padding: '14px 16px' }}><Badge status={p.status} /></td>
+                  <td className="cell-actions" style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => openEdit(p)} style={{ padding: '6px 10px', borderRadius: 8, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#fff' }}>
                         <Edit size={12} />
@@ -267,7 +249,7 @@ export default function PaymentsPage() {
                   </select>
                 </div>
               )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid-2">
                 <div>
                   <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Amount (₹) *</label>
                   <input className="input-glass" type="number" placeholder="25000" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
@@ -277,9 +259,9 @@ export default function PaymentsPage() {
                   <input className="input-glass" type="date" value={form.payment_date} onChange={e => setForm(f => ({ ...f, payment_date: e.target.value }))} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid-2">
                 <div>
-                  <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Payment Method</label>
+                  <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Method</label>
                   <select className="input-glass" value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value as PaymentMethod }))}>
                     {PAYMENT_METHODS.map(m => <option key={m} value={m}>{METHOD_ICONS[m]} {getStatusLabel(m)}</option>)}
                   </select>

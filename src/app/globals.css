@@ -14,9 +14,7 @@
   --accent-dim: rgba(255, 255, 255, 0.08);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   background-color: #0a0a0a;
@@ -30,6 +28,10 @@ html, body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ============================================================
+   CORE COMPONENTS
+   ============================================================ */
 
 .glass-card {
   background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
@@ -167,6 +169,10 @@ select.input-glass option { background: #1a1a1a; color: #fff; }
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .fade-in { animation: fadeIn 0.25s ease forwards; }
 
 .nav-item {
@@ -193,4 +199,150 @@ select.input-glass option { background: #1a1a1a; color: #fff; }
 
 .sidebar-glow {
   box-shadow: 2px 0 40px rgba(0,0,0,0.6), inset -1px 0 0 rgba(255,255,255,0.04);
+}
+
+/* ============================================================
+   RESPONSIVE LAYOUT UTILITIES
+   ============================================================ */
+
+.page-pad { padding: 32px 28px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+/* Mobile top bar — hidden on desktop */
+.mobile-topbar { display: none; }
+
+/* ============================================================
+   RESPONSIVE TABLE → CARDS (mobile)
+   ============================================================ */
+
+.r-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ============================================================
+   BREAKPOINT: TABLET (≤ 900px)
+   ============================================================ */
+@media (max-width: 900px) {
+  .grid-stats {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+}
+
+/* ============================================================
+   BREAKPOINT: MOBILE (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Hide desktop sidebar */
+  .sidebar-desktop { display: none !important; }
+
+  /* Fixed mobile top bar */
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 56px;
+    padding: 0 16px;
+    background: #0d0d0d;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 40;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  }
+
+  /* Push main content below top bar */
+  .main-content { padding-top: 56px; }
+
+  /* Page padding */
+  .page-pad { padding: 16px; }
+
+  /* Collapse grids */
+  .grid-2 { grid-template-columns: 1fr; gap: 12px; }
+  .grid-3 { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  /* Dialog → bottom sheet on mobile */
+  .dialog-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .dialog-content {
+    border-radius: 20px 20px 0 0;
+    border-bottom: none;
+    padding: 20px 16px;
+    max-height: 92vh;
+    animation: slideUp 0.25s ease;
+  }
+  .dialog-content::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 99px;
+  }
+
+  /* Table → card layout */
+  .r-table-wrap table { display: block; width: 100%; }
+  .r-table-wrap thead { display: none; }
+  .r-table-wrap tbody { display: flex; flex-direction: column; }
+  .r-table-wrap tr {
+    display: flex;
+    flex-direction: column;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+    gap: 8px;
+  }
+  .r-table-wrap tr:last-child { border-bottom: none !important; }
+  .r-table-wrap td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 !important;
+    border: none !important;
+  }
+  .r-table-wrap td[data-label]::before {
+    content: attr(data-label);
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+  .r-table-wrap td.cell-primary {
+    flex-direction: row;
+    margin-bottom: 4px;
+  }
+  .r-table-wrap td.cell-primary::before { display: none; }
+  .r-table-wrap td.cell-actions {
+    margin-top: 4px;
+    justify-content: flex-end;
+  }
+  .r-table-wrap td.cell-actions::before { display: none; }
+}
+
+/* ============================================================
+   BREAKPOINT: SMALL MOBILE (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-stats { grid-template-columns: 1fr 1fr; }
+  .page-pad { padding: 12px; }
 }

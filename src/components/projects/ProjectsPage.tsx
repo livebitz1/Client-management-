@@ -15,6 +15,8 @@ const BLANK_FORM = {
   name: '', description: '', client_id: '', status: 'planning' as ProjectStatus,
   current_phase: 'Discovery', budget: '', start_date: '', end_date: '',
   priority: 'medium' as Priority,
+  maintenance_active: false,
+  maintenance_amount: '',
 }
 
 export default function ProjectsPage() {
@@ -71,6 +73,8 @@ export default function ProjectsPage() {
       status: p.status, current_phase: p.current_phase, budget: String(p.budget),
       start_date: p.start_date || '', end_date: p.end_date || '',
       priority: p.priority,
+      maintenance_active: p.maintenance_active || false,
+      maintenance_amount: p.maintenance_amount ? String(p.maintenance_amount) : '',
     })
     setShowDialog(true)
   }
@@ -85,6 +89,7 @@ export default function ProjectsPage() {
         start_date: form.start_date || null,
         end_date: form.end_date || null,
         progress: editingProject ? editingProject.progress : 0,
+        maintenance_amount: parseFloat(form.maintenance_amount) || 0,
       }
       if (editingProject) {
         await updateProject(editingProject.id, payload)
@@ -125,14 +130,14 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: '32px 28px' }}>
+      <div className="page-pad">
         {[1,2,3].map(i => <div key={i} style={{ height: 100, borderRadius: 16, background: 'rgba(255,255,255,0.03)', marginBottom: 12 }} />)}
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '32px 28px' }}>
+    <div className="page-pad">
       <PageHeader
         title="Projects"
         subtitle={`${projects.length} total projects`}
@@ -191,6 +196,11 @@ export default function ProjectsPage() {
                         <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{p.name}</span>
                         <Badge status={p.status} />
                         <Badge status={p.priority} />
+                        {p.maintenance_active && p.maintenance_amount > 0 && (
+                          <span style={{ fontSize: 10, fontWeight: 600, color: '#a78bfa', background: 'rgba(167,139,250,0.1)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(167,139,250,0.2)', whiteSpace: 'nowrap' }}>
+                            🔧 ₹{p.maintenance_amount.toLocaleString('en-IN')}/mo
+                          </span>
+                        )}
                       </div>
                       {p.client && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -325,7 +335,7 @@ export default function ProjectsPage() {
                 <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Description</label>
                 <textarea className="input-glass" placeholder="Project details..." rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} style={{ resize: 'vertical', fontFamily: 'inherit' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div className="grid-3">
                 <div>
                   <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Status</label>
                   <select className="input-glass" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as ProjectStatus }))}>
@@ -353,7 +363,7 @@ export default function ProjectsPage() {
                   </select>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div className="grid-3">
                 <div>
                   <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Budget (₹)</label>
                   <input className="input-glass" type="number" placeholder="50000" value={form.budget} onChange={e => setForm(f => ({ ...f, budget: e.target.value }))} />
@@ -367,6 +377,41 @@ export default function ProjectsPage() {
                   <input className="input-glass" type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} />
                 </div>
               </div>
+              {/* Maintenance */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: form.maintenance_active ? 12 : 0 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Monthly Maintenance</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>Collect a recurring fee each month</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, maintenance_active: !f.maintenance_active }))}
+                    style={{
+                      width: 44, height: 24, borderRadius: 99, border: 'none', cursor: 'pointer',
+                      background: form.maintenance_active ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.12)',
+                      position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                    }}
+                  >
+                    <div style={{
+                      width: 18, height: 18, borderRadius: '50%', background: form.maintenance_active ? '#000' : 'rgba(255,255,255,0.5)',
+                      position: 'absolute', top: 3, transition: 'left 0.2s',
+                      left: form.maintenance_active ? 23 : 3,
+                    }} />
+                  </button>
+                </div>
+                {form.maintenance_active && (
+                  <div>
+                    <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Monthly Amount (₹)</label>
+                    <input
+                      className="input-glass" type="number" placeholder="e.g. 5000"
+                      value={form.maintenance_amount}
+                      onChange={e => setForm(f => ({ ...f, maintenance_amount: e.target.value }))}
+                    />
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button className="btn-glossy" style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14 }} onClick={() => setShowDialog(false)}>Cancel</button>
                 <button className="btn-primary" style={{ padding: '10px 24px', borderRadius: 10, fontSize: 14 }} onClick={handleSave} disabled={saving}>

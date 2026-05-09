@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Client, Project, Payment, ProjectPhase, DashboardStats } from '@/types/database'
+import type { Client, Project, Payment, ProjectPhase, DashboardStats, MaintenanceRecord, MaintenanceStatus } from '@/types/database'
 
 // ─── CLIENTS ─────────────────────────────────────────────────
 
@@ -189,11 +189,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   const [clients, projects, payments, monthPayments] = await Promise.all([
     supabase.from('clients').select('id, status'),
-    supabase.from('projects').select('id, status'),
-    supabase.from('payments').select('amount, status').eq('status', 'completed'),
+    supabase.from('projects').select('id, status, progress, budget, paid_amount'),
+    supabase.from('payments').select('amount').eq('status', 'completed'),
     supabase
       .from('payments')
-      .select('amount, status')
+      .select('amount')
       .eq('status', 'completed')
       .gte('payment_date', firstOfMonth),
   ])
@@ -203,20 +203,24 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const paymentData = payments.data || []
   const monthPaymentData = monthPayments.data || []
 
-  const pendingPayments = await supabase
-    .from('payments')
-    .select('amount')
-    .eq('status', 'pending')
+  const completedProjects = projectData.filter((p) => p.progress === 100)
+  const activeProjects = projectData.filter((p) => p.status === 'in_progress' || p.status === 'review')
+
+  // Pending payment = total outstanding balance across ALL projects where paid < budget
+  const pendingAmount = projectData.reduce(
+    (sum, p) => sum + Math.max(0, (p.budget || 0) - (p.paid_amount || 0)),
+    0
+  )
 
   return {
     totalClients: clientData.length,
     activeClients: clientData.filter((c) => c.status === 'active').length,
     totalProjects: projectData.length,
-    activeProjects: projectData.filter((p) => p.status === 'in_progress' || p.status === 'review').length,
+    activeProjects: activeProjects.length,
     totalRevenue: paymentData.reduce((sum, p) => sum + (p.amount || 0), 0),
     thisMonthRevenue: monthPaymentData.reduce((sum, p) => sum + (p.amount || 0), 0),
-    pendingPayments: (pendingPayments.data || []).reduce((sum, p) => sum + (p.amount || 0), 0),
-    completedProjects: projectData.filter((p) => p.status === 'completed').length,
+    pendingPayments: pendingAmount,
+    completedProjects: completedProjects.length,
   }
 }
 
@@ -242,4 +246,107 @@ export async function getRevenueByMonth(): Promise<{ month: string; revenue: num
       month: new Date(month + '-01').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
       revenue,
     }))
+}
+
+// ─── MAINTENANCE ─────────────────────────────────────────────
+
+export async function getMaintenanceRecords(month?: string, projectId?: string): Promise<MaintenanceRecord[]> {
+  let query = supabase
+    .from('project_maintenance')
+    .select('*, project:projects(id, name, client:clients(id, name, company, avatar_url))')
+    .order('month', { ascending: false })
+    .order('created_at', { ascending: false })
+
+  if (month) query = query.eq('month', month)
+  if (projectId) query = query.eq('project_id', projectId)
+
+  const { data, error } = await query
+  if (error) throw error
+  return data || []
+}
+
+export async function createMaintenanceRecord(
+  payload: Omit<MaintenanceRecord, 'id' | 'created_at' | 'updated_at' | 'project'>
+): Promise<MaintenanceRecord> {
+  const { data, error } = await supabase
+    .from('project_maintenance')
+    .insert(payload)
+    .select('*, project:projects(id, name, client:clients(id, name, company, avatar_url))')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateMaintenanceRecord(
+  id: string,
+  payload: Partial<Omit<MaintenanceRecord, 'id' | 'created_at' | 'updated_at' | 'project'>>
+): Promise<MaintenanceRecord> {
+  const { data, error } = await supabase
+    .from('project_maintenance')
+    .update(payload)
+    .eq('id', id)
+    .select('*, project:projects(id, name, client:clients(id, name, company, avatar_url))')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteMaintenanceRecord(id: string) {
+  const { error } = await supabase.from('project_maintenance').delete().eq('id', id)
+  if (error) throw error
+}
+
+// Generate pending maintenance records for a given month for all active maintenance projects.
+// Uses upsert with ignoreDuplicates so re-running is safe.
+export async function generateMonthlyMaintenance(month: string): Promise<number> {
+  const { data: projects, error: projErr } = await supabase
+    .from('projects')
+    .select('id, maintenance_amount')
+    .eq('maintenance_active', true)
+    .gt('maintenance_amount', 0)
+
+  if (projErr) throw projErr
+  if (!projects || projects.length === 0) return 0
+
+  const rows = projects.map((p) => ({
+    project_id: p.id,
+    month,
+    amount: p.maintenance_amount,
+    status: 'pending' as MaintenanceStatus,
+    paid_date: null,
+    notes: null,
+  }))
+
+  const { data, error } = await supabase
+    .from('project_maintenance')
+    .upsert(rows, { onConflict: 'project_id,month', ignoreDuplicates: true })
+    .select()
+
+  if (error) throw error
+  return (data || []).length
+}
+
+export async function getMaintenanceStats(month: string) {
+  const [allRecords, activeProjects] = await Promise.all([
+    supabase
+      .from('project_maintenance')
+      .select('amount, status')
+      .eq('month', month),
+    supabase
+      .from('projects')
+      .select('maintenance_amount')
+      .eq('maintenance_active', true)
+      .gt('maintenance_amount', 0),
+  ])
+
+  const records = allRecords.data || []
+  const projects = activeProjects.data || []
+
+  return {
+    monthlyExpected: projects.reduce((s, p) => s + (p.maintenance_amount || 0), 0),
+    collected: records.filter((r) => r.status === 'paid').reduce((s, r) => s + r.amount, 0),
+    pending: records.filter((r) => r.status === 'pending').reduce((s, r) => s + r.amount, 0),
+    overdue: records.filter((r) => r.status === 'overdue').reduce((s, r) => s + r.amount, 0),
+    activeProjectCount: projects.length,
+  }
 }

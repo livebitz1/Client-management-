@@ -11,7 +11,8 @@ import type { Client, ClientStatus } from '@/types/database'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 const BLANK_FORM = {
-  name: '', email: '', phone: '', company: '', address: '', avatar_url: null as string | null, status: 'active' as ClientStatus, notes: '',
+  name: '', email: '', phone: '', company: '', address: '',
+  avatar_url: null as string | null, status: 'active' as ClientStatus, notes: '',
 }
 
 export default function ClientsPage() {
@@ -55,12 +56,7 @@ export default function ClientsPage() {
     setFiltered(data)
   }, [clients, search, statusFilter])
 
-  const openAdd = () => {
-    setEditingClient(null)
-    setForm(BLANK_FORM)
-    setShowDialog(true)
-  }
-
+  const openAdd = () => { setEditingClient(null); setForm(BLANK_FORM); setShowDialog(true) }
   const openEdit = (c: Client) => {
     setEditingClient(c)
     setForm({ name: c.name, email: c.email, phone: c.phone || '', company: c.company || '', address: c.address || '', avatar_url: c.avatar_url, status: c.status, notes: c.notes || '' })
@@ -71,18 +67,12 @@ export default function ClientsPage() {
     if (!form.name.trim() || !form.email.trim()) return
     try {
       setSaving(true)
-      if (editingClient) {
-        await updateClient(editingClient.id, form)
-      } else {
-        await createClient(form)
-      }
+      if (editingClient) { await updateClient(editingClient.id, form) } else { await createClient(form) }
       setShowDialog(false)
       await load()
     } catch (e: unknown) {
       alert('Error: ' + (e instanceof Error ? e.message : 'Unknown error'))
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   const handleDelete = async (id: string) => {
@@ -97,7 +87,7 @@ export default function ClientsPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: '32px 28px' }}>
+      <div className="page-pad">
         <div style={{ height: 60, borderRadius: 12, background: 'rgba(255,255,255,0.03)', marginBottom: 20 }} />
         {[1,2,3,4].map(i => <div key={i} style={{ height: 68, borderRadius: 12, background: 'rgba(255,255,255,0.03)', marginBottom: 8 }} />)}
       </div>
@@ -105,29 +95,23 @@ export default function ClientsPage() {
   }
 
   return (
-    <div style={{ padding: '32px 28px' }}>
+    <div className="page-pad">
       <PageHeader
         title="Clients"
         subtitle={`${clients.length} total clients`}
         action={
           <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 10, fontSize: 14 }} onClick={openAdd}>
             <Plus size={16} />
-            Add Client
+            <span>Add Client</span>
           </button>
         }
       />
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
           <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)' }} />
-          <input
-            className="input-glass"
-            style={{ paddingLeft: 36 }}
-            placeholder="Search clients..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <input className="input-glass" style={{ paddingLeft: 36 }} placeholder="Search clients..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <select className="input-glass" style={{ width: 'auto', minWidth: 130 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="all">All Status</option>
@@ -140,20 +124,17 @@ export default function ClientsPage() {
       {error && <div style={{ color: '#f87171', marginBottom: 16, fontSize: 13 }}>{error}</div>}
 
       {/* Table */}
-      <div className="glass-card" style={{ overflow: 'hidden' }}>
+      <div className="glass-card r-table-wrap" style={{ overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <EmptyState
             icon={Users}
             title="No clients found"
             description={search ? 'Try a different search term' : 'Add your first client to get started'}
-            action={
-              !search && (
-                <button className="btn-glossy" style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14 }} onClick={openAdd}>
-                  <Plus size={14} style={{ marginRight: 6 }} />
-                  Add Client
-                </button>
-              )
-            }
+            action={!search && (
+              <button className="btn-glossy" style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14 }} onClick={openAdd}>
+                <Plus size={14} style={{ marginRight: 6 }} />Add Client
+              </button>
+            )}
           />
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -167,7 +148,7 @@ export default function ClientsPage() {
             <tbody>
               {filtered.map((c) => (
                 <tr key={c.id} className="table-row-hover" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ padding: '14px 16px' }}>
+                  <td className="cell-primary" style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <Avatar name={c.name} size={36} imageUrl={c.avatar_url} />
                       <div>
@@ -178,31 +159,27 @@ export default function ClientsPage() {
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: '14px 16px' }}>
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <Mail size={12} />{c.email}
+                  <td data-label="Contact" style={{ padding: '14px 16px' }}>
+                    <div>
+                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <Mail size={12} />{c.email}
+                      </div>
+                      {c.phone && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Phone size={12} />{c.phone}
+                      </div>}
                     </div>
-                    {c.phone && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Phone size={12} />{c.phone}
-                    </div>}
                   </td>
-                  <td style={{ padding: '14px 16px' }}><Badge status={c.status} /></td>
-                  <td style={{ padding: '14px 16px', fontWeight: 600, fontSize: 14, color: c.total_paid > 0 ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>
+                  <td data-label="Status" style={{ padding: '14px 16px' }}><Badge status={c.status} /></td>
+                  <td data-label="Total Paid" style={{ padding: '14px 16px', fontWeight: 600, fontSize: 14, color: c.total_paid > 0 ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>
                     {formatCurrency(c.total_paid)}
                   </td>
-                  <td style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{formatDate(c.created_at)}</td>
-                  <td style={{ padding: '14px 16px' }}>
+                  <td data-label="Joined" style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{formatDate(c.created_at)}</td>
+                  <td className="cell-actions" style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        onClick={() => openEdit(c)}
-                        style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#fff' }}
-                      >
+                      <button onClick={() => openEdit(c)} style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#fff' }}>
                         <Edit size={12} /> Edit
                       </button>
-                      <button
-                        onClick={() => setDeleteId(c.id)}
-                        style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.06)', color: '#f87171' }}
-                      >
+                      <button onClick={() => setDeleteId(c.id)} style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.06)', color: '#f87171' }}>
                         <Trash2 size={12} /> Delete
                       </button>
                     </div>
@@ -223,7 +200,7 @@ export default function ClientsPage() {
               <button onClick={() => setShowDialog(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 20, lineHeight: 1 }}>×</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid-2">
                 <div>
                   <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Full Name *</label>
                   <input className="input-glass" placeholder="John Doe" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -233,7 +210,7 @@ export default function ClientsPage() {
                   <input className="input-glass" placeholder="john@company.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid-2">
                 <div>
                   <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Phone</label>
                   <input className="input-glass" placeholder="+91 98765 43210" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
@@ -280,7 +257,7 @@ export default function ClientsPage() {
               </div>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Delete Client?</h3>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 24, lineHeight: 1.6 }}>
-                This will permanently delete the client and all their projects and payments. This action cannot be undone.
+                This will permanently delete the client and all their projects and payments.
               </p>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                 <button className="btn-glossy" style={{ padding: '10px 24px', borderRadius: 10, fontSize: 14 }} onClick={() => setDeleteId(null)}>Cancel</button>

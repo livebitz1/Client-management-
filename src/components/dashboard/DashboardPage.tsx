@@ -6,7 +6,7 @@ import {
   Clock, CheckCircle2, ArrowRight, AlertCircle
 } from 'lucide-react'
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell
 } from 'recharts'
 import StatCard from '@/components/ui/StatCard'
 import Badge from '@/components/ui/Badge'
@@ -21,14 +21,9 @@ import Link from 'next/link'
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
   if (active && payload && payload.length) {
     return (
-      <div style={{
-        background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 10, padding: '10px 14px',
-      }}>
+      <div style={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px' }}>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{label}</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
-          {formatCurrency(payload[0].value)}
-        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{formatCurrency(payload[0].value)}</div>
       </div>
     )
   }
@@ -48,17 +43,10 @@ export default function DashboardPage() {
     try {
       setLoading(true)
       const [s, r, c, p, pay] = await Promise.all([
-        getDashboardStats(),
-        getRevenueByMonth(),
-        getClients(),
-        getProjects(),
-        getPayments(),
+        getDashboardStats(), getRevenueByMonth(), getClients(), getProjects(), getPayments(),
       ])
-      setStats(s)
-      setRevenue(r)
-      setClients(c.slice(0, 5))
-      setProjects(p.slice(0, 5))
-      setPayments(pay.slice(0, 5))
+      setStats(s); setRevenue(r)
+      setClients(c.slice(0, 5)); setProjects(p.slice(0, 5)); setPayments(pay.slice(0, 5))
     } catch {
       setError('Failed to connect to Supabase. Please configure your .env.local file.')
     } finally {
@@ -70,8 +58,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: '32px 28px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
+      <div className="page-pad">
+        <div className="grid-stats" style={{ marginBottom: 24 }}>
           {[1,2,3,4].map(i => (
             <div key={i} style={{ height: 120, borderRadius: 16, background: 'rgba(255,255,255,0.03)', animation: 'pulse 1.5s ease infinite' }} />
           ))}
@@ -82,7 +70,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div style={{ padding: '32px 28px' }}>
+      <div className="page-pad">
         <div className="glass-card" style={{ padding: '24px', display: 'flex', alignItems: 'flex-start', gap: 16 }}>
           <AlertCircle size={20} color="#f87171" style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
@@ -99,60 +87,24 @@ export default function DashboardPage() {
   }
 
   return (
-    <div style={{ padding: '32px 28px' }}>
+    <div className="page-pad">
       <PageHeader
         title="Dashboard"
         subtitle={`Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'} — here's your overview`}
       />
 
       {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14, marginBottom: 24 }}>
-        <StatCard
-          title="Total Clients"
-          value={String(stats?.totalClients || 0)}
-          subtitle={`${stats?.activeClients || 0} active`}
-          icon={Users}
-          iconColor="#a78bfa"
-        />
-        <StatCard
-          title="Total Projects"
-          value={String(stats?.totalProjects || 0)}
-          subtitle={`${stats?.activeProjects || 0} active`}
-          icon={FolderKanban}
-          iconColor="#60a5fa"
-        />
-        <StatCard
-          title="Total Revenue"
-          value={formatCurrency(stats?.totalRevenue || 0)}
-          subtitle="All time earnings"
-          icon={DollarSign}
-          iconColor="#4ade80"
-        />
-        <StatCard
-          title="This Month"
-          value={formatCurrency(stats?.thisMonthRevenue || 0)}
-          subtitle={`${formatCurrency(stats?.pendingPayments || 0)} pending`}
-          icon={TrendingUp}
-          iconColor="#fbbf24"
-        />
-        <StatCard
-          title="Completed"
-          value={String(stats?.completedProjects || 0)}
-          subtitle="Delivered projects"
-          icon={CheckCircle2}
-          iconColor="#34d399"
-        />
-        <StatCard
-          title="Pending Payment"
-          value={formatCurrency(stats?.pendingPayments || 0)}
-          subtitle="To be collected"
-          icon={Clock}
-          iconColor="#f87171"
-        />
+      <div className="grid-stats">
+        <StatCard title="Total Clients" value={String(stats?.totalClients || 0)} subtitle={`${stats?.activeClients || 0} active`} icon={Users} iconColor="#a78bfa" />
+        <StatCard title="Total Projects" value={String(stats?.totalProjects || 0)} subtitle={`${stats?.activeProjects || 0} active`} icon={FolderKanban} iconColor="#60a5fa" />
+        <StatCard title="Total Revenue" value={formatCurrency(stats?.totalRevenue || 0)} subtitle="All time earnings" icon={DollarSign} iconColor="#4ade80" />
+        <StatCard title="This Month" value={formatCurrency(stats?.thisMonthRevenue || 0)} subtitle={`${formatCurrency(stats?.pendingPayments || 0)} pending`} icon={TrendingUp} iconColor="#fbbf24" />
+        <StatCard title="Completed" value={String(stats?.completedProjects || 0)} subtitle="100% progress projects" icon={CheckCircle2} iconColor="#34d399" />
+        <StatCard title="Pending Payment" value={formatCurrency(stats?.pendingPayments || 0)} subtitle="Unpaid project balance" icon={Clock} iconColor="#f87171" />
       </div>
 
-      {/* Charts + Tables Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+      {/* Charts + Recent Payments */}
+      <div className="grid-2" style={{ marginBottom: 16 }}>
         {/* Revenue Chart */}
         <div className="glass-card" style={{ padding: '20px 20px 10px' }}>
           <div style={{ marginBottom: 20 }}>
@@ -164,20 +116,25 @@ export default function DashboardPage() {
               No payment data yet
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={revenue} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#fff" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#fff" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}k`} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="revenue" stroke="#fff" strokeWidth={1.5} fill="url(#revenueGrad)" dot={false} />
-              </AreaChart>
+            <ResponsiveContainer width="100%" height={190}>
+              <BarChart data={revenue} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v/1000).toFixed(0)}k`} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)', radius: 6 }} />
+                <Bar dataKey="revenue" radius={[6, 6, 0, 0]} maxBarSize={48}>
+                  {revenue.map((entry, index) => {
+                    const max = Math.max(...revenue.map(r => r.revenue))
+                    const isMax = entry.revenue === max
+                    return (
+                      <Cell
+                        key={index}
+                        fill={isMax ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.18)'}
+                      />
+                    )
+                  })}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           )}
         </div>
@@ -194,9 +151,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           {payments.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
-              No payments yet
-            </div>
+            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>No payments yet</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {payments.map((p) => (
@@ -221,8 +176,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Bottom row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      {/* Recent Clients + Active Projects */}
+      <div className="grid-2">
         {/* Recent Clients */}
         <div className="glass-card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -232,9 +187,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           {clients.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
-              No clients yet
-            </div>
+            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>No clients yet</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {clients.map((c) => (
@@ -265,17 +218,15 @@ export default function DashboardPage() {
             </Link>
           </div>
           {projects.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
-              No projects yet
-            </div>
+            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>No projects yet</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {projects.map((p) => (
                 <div key={p.id}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, gap: 8 }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{p.current_phase} • {p.client?.name}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{p.current_phase} · {p.client?.name}</div>
                     </div>
                     <Badge status={p.status} />
                   </div>

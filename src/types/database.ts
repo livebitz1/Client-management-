@@ -4,6 +4,7 @@ export type PhaseStatus = 'pending' | 'in_progress' | 'completed' | 'skipped'
 export type PaymentMethod = 'bank_transfer' | 'upi' | 'cash' | 'cheque' | 'card' | 'crypto' | 'other'
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded'
 export type Priority = 'low' | 'medium' | 'high' | 'urgent'
+export type MaintenanceStatus = 'pending' | 'paid' | 'overdue'
 
 export interface Client {
   id: string
@@ -33,6 +34,8 @@ export interface Project {
   end_date: string | null
   priority: Priority
   progress: number
+  maintenance_amount: number
+  maintenance_active: boolean
   created_at: string
   updated_at: string
   client?: Client
@@ -71,6 +74,28 @@ export interface Payment {
   project?: Project
 }
 
+export interface MaintenanceRecord {
+  id: string
+  project_id: string
+  month: string           // YYYY-MM
+  amount: number
+  status: MaintenanceStatus
+  paid_date: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  project?: {
+    id: string
+    name: string
+    client?: {
+      id: string
+      name: string
+      company: string | null
+      avatar_url: string | null
+    }
+  }
+}
+
 export interface DashboardStats {
   totalClients: number
   activeClients: number
@@ -104,6 +129,11 @@ export interface Database {
         Row: Payment
         Insert: Omit<Payment, 'id' | 'created_at' | 'updated_at' | 'client' | 'project'>
         Update: Partial<Omit<Payment, 'id' | 'created_at' | 'updated_at' | 'client' | 'project'>>
+      }
+      project_maintenance: {
+        Row: MaintenanceRecord
+        Insert: Omit<MaintenanceRecord, 'id' | 'created_at' | 'updated_at' | 'project'>
+        Update: Partial<Omit<MaintenanceRecord, 'id' | 'created_at' | 'updated_at' | 'project'>>
       }
     }
   }
