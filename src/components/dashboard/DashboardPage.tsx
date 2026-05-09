@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   Users, FolderKanban, DollarSign, TrendingUp,
-  Clock, CheckCircle2, ArrowRight, AlertCircle
+  Clock, CheckCircle2, ArrowRight, AlertCircle, Wrench
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell
@@ -13,8 +13,8 @@ import Badge from '@/components/ui/Badge'
 import Avatar from '@/components/ui/Avatar'
 import ProgressBar from '@/components/ui/ProgressBar'
 import PageHeader from '@/components/ui/PageHeader'
-import { getDashboardStats, getRevenueByMonth, getClients, getProjects, getPayments } from '@/lib/actions'
-import type { DashboardStats, Client, Project, Payment } from '@/types/database'
+import { getDashboardStats, getRevenueByMonth, getClients, getProjects, getPayments, getMaintenanceStats, getMaintenanceRecords } from '@/lib/actions'
+import type { DashboardStats, Client, Project, Payment, MaintenanceRecord } from '@/types/database'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -36,8 +36,15 @@ export default function DashboardPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
+  const [maintStats, setMaintStats] = useState({ monthlyExpected: 0, collected: 0, pending: 0, overdue: 0, activeProjectCount: 0 })
+  const [maintRecords, setMaintRecords] = useState<MaintenanceRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const currentMonth = (() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })()
 
   const load = useCallback(async () => {
     try {
@@ -47,12 +54,22 @@ export default function DashboardPage() {
       ])
       setStats(s); setRevenue(r)
       setClients(c.slice(0, 5)); setProjects(p.slice(0, 5)); setPayments(pay.slice(0, 5))
+
+      // Load maintenance separately so it doesn't break dashboard if table isn't set up
+      try {
+        const [ms, mr] = await Promise.all([
+          getMaintenanceStats(currentMonth),
+          getMaintenanceRecords(currentMonth),
+        ])
+        setMaintStats(ms)
+        setMaintRecords(mr)
+      } catch { /* maintenance table may not exist yet */ }
     } catch {
       setError('Failed to connect to Supabase. Please configure your .env.local file.')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [currentMonth])
 
   useEffect(() => { load() }, [load])
 
@@ -101,6 +118,13 @@ export default function DashboardPage() {
         <StatCard title="This Month" value={formatCurrency(stats?.thisMonthRevenue || 0)} subtitle={`${formatCurrency(stats?.pendingPayments || 0)} pending`} icon={TrendingUp} iconColor="#fbbf24" />
         <StatCard title="Completed" value={String(stats?.completedProjects || 0)} subtitle="100% progress projects" icon={CheckCircle2} iconColor="#34d399" />
         <StatCard title="Pending Payment" value={formatCurrency(stats?.pendingPayments || 0)} subtitle="Unpaid project balance" icon={Clock} iconColor="#f87171" />
+        <StatCard
+          title="Maintenance / Mo"
+          value={formatCurrency(maintStats.monthlyExpected || maintStats.collected)}
+          subtitle={maintStats.activeProjectCount > 0 ? `${maintStats.activeProjectCount} active project${maintStats.activeProjectCount !== 1 ? 's' : ''}` : `${formatCurrency(maintStats.collected)} collected this month`}
+          icon={Wrench}
+          iconColor="#c084fc"
+        />
       </div>
 
       {/* Charts + Recent Payments */}
