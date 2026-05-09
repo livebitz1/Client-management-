@@ -1,10 +1,10 @@
 import Shell from '@/components/Shell'
-import DashboardPage from '@/components/dashboard/DashboardPage'
+import ClientsPage from '@/components/clients/ClientsPage'
 
-export default function Home() {
+export default function Page() {
   return (
     <Shell>
-      <DashboardPage />
+      <ClientsPage />
     </Shell>
   )
 }
