@@ -64,7 +64,7 @@ export default function ClientsPage() {
   }
 
   const handleSave = async () => {
-    if (!form.name.trim() || !form.email.trim()) return
+    if (!form.name.trim() || !form.phone.trim()) return
     try {
       setSaving(true)
       if (editingClient) { await updateClient(editingClient.id, form) } else { await createClient(form) }
@@ -206,19 +206,13 @@ export default function ClientsPage() {
                   <input className="input-glass" placeholder="John Doe" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Email *</label>
-                  <input className="input-glass" placeholder="john@company.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-                </div>
-              </div>
-              <div className="grid-2">
-                <div>
-                  <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Phone</label>
+                  <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Phone *</label>
                   <input className="input-glass" placeholder="+91 98765 43210" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
                 </div>
-                <div>
-                  <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Company</label>
-                  <input className="input-glass" placeholder="Acme Corp" value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} />
-                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Company</label>
+                <input className="input-glass" placeholder="Acme Corp" value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Status</label>
