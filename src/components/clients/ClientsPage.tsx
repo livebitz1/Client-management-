@@ -75,12 +75,16 @@ export default function ClientsPage() {
     }
     try {
       setSaving(true)
-      // Generate unique email if creating new client
-      const dataToSave = editingClient 
-        ? form 
-        : { ...form, email: `${form.name.replace(/\s+/g, '').toLowerCase()}_${Date.now()}@auto.clientflow` }
-      
-      if (editingClient) { await updateClient(editingClient.id, dataToSave) } else { await createClient(dataToSave) }
+      if (editingClient) { 
+        await updateClient(editingClient.id, form) 
+      } else { 
+        // Generate unique email for new clients
+        const newClientData = { 
+          ...form, 
+          email: `${form.name.replace(/\s+/g, '').toLowerCase()}_${Date.now()}@auto.clientflow` 
+        }
+        await createClient(newClientData)
+      }
       setShowDialog(false)
       await load()
     } catch (e: unknown) {
