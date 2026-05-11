@@ -11,7 +11,7 @@ import type { Client, ClientStatus } from '@/types/database'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 const BLANK_FORM = {
-  name: '', email: '', phone: '', company: '', address: '',
+  name: '', phone: '', company: '', address: '',
   avatar_url: null as string | null, status: 'active' as ClientStatus, notes: '',
 }
 
@@ -59,19 +59,33 @@ export default function ClientsPage() {
   const openAdd = () => { setEditingClient(null); setForm(BLANK_FORM); setShowDialog(true) }
   const openEdit = (c: Client) => {
     setEditingClient(c)
-    setForm({ name: c.name, email: c.email, phone: c.phone || '', company: c.company || '', address: c.address || '', avatar_url: c.avatar_url, status: c.status, notes: c.notes || '' })
+    setForm({ name: c.name, phone: c.phone || '', company: c.company || '', address: c.address || '', avatar_url: c.avatar_url, status: c.status, notes: c.notes || '' })
     setShowDialog(true)
   }
 
   const handleSave = async () => {
-    if (!form.name.trim() || !form.phone.trim()) return
+    // Validate required fields
+    if (!form.name.trim()) {
+      alert('Full Name is required')
+      return
+    }
+    if (!form.phone.trim()) {
+      alert('Phone is required')
+      return
+    }
     try {
       setSaving(true)
-      if (editingClient) { await updateClient(editingClient.id, form) } else { await createClient(form) }
+      // Generate unique email if creating new client
+      const dataToSave = editingClient 
+        ? form 
+        : { ...form, email: `${form.name.replace(/\s+/g, '').toLowerCase()}_${Date.now()}@auto.clientflow` }
+      
+      if (editingClient) { await updateClient(editingClient.id, dataToSave) } else { await createClient(dataToSave) }
       setShowDialog(false)
       await load()
     } catch (e: unknown) {
-      alert('Error: ' + (e instanceof Error ? e.message : 'Unknown error'))
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+      alert('Error: ' + errorMsg)
     } finally { setSaving(false) }
   }
 
@@ -200,15 +214,13 @@ export default function ClientsPage() {
               <button onClick={() => setShowDialog(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 20, lineHeight: 1 }}>×</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div className="grid-2">
-                <div>
-                  <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Full Name *</label>
-                  <input className="input-glass" placeholder="John Doe" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Phone *</label>
-                  <input className="input-glass" placeholder="+91 98765 43210" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
-                </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Full Name *</label>
+                <input className="input-glass" placeholder="John Doe" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Phone *</label>
+                <input className="input-glass" placeholder="+91 98765 43210" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Company</label>
