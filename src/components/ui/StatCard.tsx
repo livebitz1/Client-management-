@@ -1,4 +1,5 @@
 import { LucideIcon } from 'lucide-react'
+import { useCountAnimation } from '@/hooks/useCountAnimation'
 
 interface StatCardProps {
   title: string
@@ -10,6 +11,8 @@ interface StatCardProps {
 }
 
 export default function StatCard({ title, value, subtitle, icon: Icon, iconColor = '#fff', trend }: StatCardProps) {
+  const animatedValue = useCountAnimation(value)
+
   return (
     <div className="glass-card" style={{ padding: '20px 22px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -35,7 +38,7 @@ export default function StatCard({ title, value, subtitle, icon: Icon, iconColor
         )}
       </div>
       <div style={{ fontSize: 24, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', lineHeight: 1 }}>
-        {value}
+        {animatedValue}
       </div>
       <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 6, fontWeight: 500 }}>
         {title}
