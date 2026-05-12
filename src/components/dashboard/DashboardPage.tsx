@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import {
-  Users, FolderKanban, DollarSign, TrendingUp,
+  Users, FolderKanban, IndianRupee, TrendingUp,
   Clock, CheckCircle2, ArrowRight, AlertCircle, Wrench
 } from 'lucide-react'
 import {
@@ -114,7 +114,7 @@ export default function DashboardPage() {
       <div className="grid-stats">
         <StatCard title="Total Clients" value={String(stats?.totalClients || 0)} subtitle={`${stats?.activeClients || 0} active`} icon={Users} iconColor="#a78bfa" />
         <StatCard title="Total Projects" value={String(stats?.totalProjects || 0)} subtitle={`${stats?.activeProjects || 0} active`} icon={FolderKanban} iconColor="#60a5fa" />
-        <StatCard title="Total Revenue" value={formatCurrency(stats?.totalRevenue || 0)} subtitle="All time earnings" icon={DollarSign} iconColor="#4ade80" />
+        <StatCard title="Total Revenue" value={formatCurrency(stats?.totalRevenue || 0)} subtitle="All time earnings" icon={IndianRupee} iconColor="#4ade80" />
         <StatCard title="This Month" value={formatCurrency(stats?.thisMonthRevenue || 0)} subtitle={`${formatCurrency(stats?.pendingPayments || 0)} pending`} icon={TrendingUp} iconColor="#fbbf24" />
         <StatCard title="Completed" value={String(stats?.completedProjects || 0)} subtitle="100% progress projects" icon={CheckCircle2} iconColor="#34d399" />
         <StatCard title="Pending Payment" value={formatCurrency(stats?.pendingPayments || 0)} subtitle="Unpaid project balance" icon={Clock} iconColor="#f87171" />
