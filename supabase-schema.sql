@@ -123,6 +123,13 @@ BEGIN
     ) WHERE id = OLD.client_id;
     RETURN OLD;
   ELSE
+    IF TG_OP = 'UPDATE' AND OLD.client_id IS DISTINCT FROM NEW.client_id THEN
+      UPDATE clients SET total_paid = (
+        SELECT COALESCE(SUM(amount), 0) FROM payments
+        WHERE client_id = OLD.client_id AND status = 'completed'
+      ) WHERE id = OLD.client_id;
+    END IF;
+
     UPDATE clients SET total_paid = (
       SELECT COALESCE(SUM(amount), 0) FROM payments
       WHERE client_id = NEW.client_id AND status = 'completed'
@@ -151,6 +158,13 @@ BEGIN
     END IF;
     RETURN OLD;
   ELSE
+    IF TG_OP = 'UPDATE' AND OLD.project_id IS NOT NULL AND OLD.project_id IS DISTINCT FROM NEW.project_id THEN
+      UPDATE projects SET paid_amount = (
+        SELECT COALESCE(SUM(amount), 0) FROM payments
+        WHERE project_id = OLD.project_id AND status = 'completed'
+      ) WHERE id = OLD.project_id;
+    END IF;
+
     IF NEW.project_id IS NOT NULL THEN
       UPDATE projects SET paid_amount = (
         SELECT COALESCE(SUM(amount), 0) FROM payments
@@ -165,4 +179,3 @@ $$ language 'plpgsql';
 CREATE TRIGGER sync_project_paid_amount_trigger
 AFTER INSERT OR UPDATE OR DELETE ON payments
 FOR EACH ROW EXECUTE FUNCTION sync_project_paid_amount();
-

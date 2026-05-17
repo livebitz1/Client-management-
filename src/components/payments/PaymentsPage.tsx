@@ -35,6 +35,7 @@ export default function PaymentsPage() {
   const [showDialog, setShowDialog] = useState(false)
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null)
   const [form, setForm] = useState(BLANK_FORM)
+  const [formError, setFormError] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -65,9 +66,10 @@ export default function PaymentsPage() {
     setFiltered(data)
   }, [payments, search, statusFilter])
 
-  const openAdd = () => { setEditingPayment(null); setForm(BLANK_FORM); setShowDialog(true) }
+  const openAdd = () => { setEditingPayment(null); setForm(BLANK_FORM); setFormError(''); setShowDialog(true) }
   const openEdit = (p: Payment) => {
     setEditingPayment(p)
+    setFormError('')
     setForm({
       client_id: p.client_id, project_id: p.project_id || '', amount: String(p.amount),
       currency: p.currency, payment_date: p.payment_date, payment_method: p.payment_method,
@@ -78,10 +80,22 @@ export default function PaymentsPage() {
   }
 
   const handleSave = async () => {
-    if (!form.client_id || !form.amount) return
+    if (!form.client_id) {
+      setFormError('Select a client before recording the payment.')
+      return
+    }
+    if (!form.project_id) {
+      setFormError('Select the project this payment belongs to.')
+      return
+    }
+    if (!form.amount || (parseFloat(form.amount) || 0) <= 0) {
+      setFormError('Enter a valid payment amount.')
+      return
+    }
     try {
       setSaving(true)
-      const payload = { ...form, amount: parseFloat(form.amount) || 0, project_id: form.project_id || null }
+      setFormError('')
+      const payload = { ...form, amount: parseFloat(form.amount) || 0, project_id: form.project_id }
       if (editingPayment) { await updatePayment(editingPayment.id, payload) } else { await createPayment(payload) }
       setShowDialog(false)
       await load()
@@ -235,20 +249,30 @@ export default function PaymentsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Client *</label>
-                <select className="input-glass" value={form.client_id} onChange={e => setForm(f => ({ ...f, client_id: e.target.value, project_id: '' }))}>
+                <select className="input-glass" value={form.client_id} onChange={e => { setForm(f => ({ ...f, client_id: e.target.value, project_id: '' })); setFormError('') }}>
                   <option value="">Select client...</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ''}</option>)}
                 </select>
               </div>
-              {form.client_id && (
-                <div>
-                  <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Project (optional)</label>
-                  <select className="input-glass" value={form.project_id} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))}>
-                    <option value="">No project</option>
-                    {clientProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-              )}
+              <div>
+                <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Project *</label>
+                <select
+                  className="input-glass"
+                  value={form.project_id}
+                  onChange={e => { setForm(f => ({ ...f, project_id: e.target.value })); setFormError('') }}
+                  disabled={!form.client_id || clientProjects.length === 0}
+                >
+                  <option value="">
+                    {!form.client_id ? 'Select client first...' : clientProjects.length === 0 ? 'No projects for this client' : 'Select project...'}
+                  </option>
+                  {clientProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                {form.client_id && clientProjects.length === 0 && (
+                  <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 6 }}>
+                    Create a project for this client before recording a payment.
+                  </div>
+                )}
+              </div>
               <div className="grid-2">
                 <div>
                   <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Amount (₹) *</label>
@@ -288,9 +312,14 @@ export default function PaymentsPage() {
                 <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 6, display: 'block' }}>Notes</label>
                 <textarea className="input-glass" placeholder="Additional notes..." rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={{ resize: 'vertical', fontFamily: 'inherit' }} />
               </div>
+              {formError && (
+                <div style={{ border: '1px solid rgba(251,191,36,0.22)', background: 'rgba(251,191,36,0.08)', color: '#fbbf24', padding: '10px 12px', borderRadius: 10, fontSize: 12 }}>
+                  {formError}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button className="btn-glossy" style={{ padding: '10px 20px', borderRadius: 10, fontSize: 14 }} onClick={() => setShowDialog(false)}>Cancel</button>
-                <button className="btn-primary" style={{ padding: '10px 24px', borderRadius: 10, fontSize: 14 }} onClick={handleSave} disabled={saving}>
+                <button className="btn-primary" style={{ padding: '10px 24px', borderRadius: 10, fontSize: 14 }} onClick={handleSave} disabled={saving || !form.client_id || !form.project_id || !form.amount || clientProjects.length === 0}>
                   {saving ? 'Saving...' : editingPayment ? 'Update' : 'Record Payment'}
                 </button>
               </div>

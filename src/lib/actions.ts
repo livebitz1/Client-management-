@@ -153,6 +153,57 @@ export async function getPaymentsByClient(clientId: string): Promise<Payment[]> 
   return data || []
 }
 
+async function syncClientTotal(clientId: string | null | undefined) {
+  if (!clientId) return
+
+  const { data, error } = await supabase
+    .from('payments')
+    .select('amount')
+    .eq('client_id', clientId)
+    .eq('status', 'completed')
+  if (error) throw error
+
+  const totalPaid = (data || []).reduce((sum, payment) => sum + (payment.amount || 0), 0)
+  const { error: updateError } = await supabase
+    .from('clients')
+    .update({ total_paid: totalPaid })
+    .eq('id', clientId)
+  if (updateError) throw updateError
+}
+
+async function syncProjectPaidAmount(projectId: string | null | undefined) {
+  if (!projectId) return
+
+  const { data, error } = await supabase
+    .from('payments')
+    .select('amount')
+    .eq('project_id', projectId)
+    .eq('status', 'completed')
+  if (error) throw error
+
+  const paidAmount = (data || []).reduce((sum, payment) => sum + (payment.amount || 0), 0)
+  const { error: updateError } = await supabase
+    .from('projects')
+    .update({ paid_amount: paidAmount })
+    .eq('id', projectId)
+  if (updateError) throw updateError
+}
+
+async function syncPaymentTotals(...payments: Array<Pick<Payment, 'client_id' | 'project_id'> | null | undefined>) {
+  const clientIds = new Set<string>()
+  const projectIds = new Set<string>()
+
+  payments.forEach((payment) => {
+    if (payment?.client_id) clientIds.add(payment.client_id)
+    if (payment?.project_id) projectIds.add(payment.project_id)
+  })
+
+  await Promise.all([
+    ...Array.from(clientIds).map(syncClientTotal),
+    ...Array.from(projectIds).map(syncProjectPaidAmount),
+  ])
+}
+
 export async function createPayment(
   payload: Omit<Payment, 'id' | 'created_at' | 'updated_at' | 'client' | 'project'>
 ) {
@@ -162,10 +213,17 @@ export async function createPayment(
     .select()
     .single()
   if (error) throw error
+  await syncPaymentTotals(data)
   return data
 }
 
 export async function updatePayment(id: string, payload: Partial<Payment>) {
+  const { data: previous } = await supabase
+    .from('payments')
+    .select('client_id, project_id')
+    .eq('id', id)
+    .single()
+
   const { data, error } = await supabase
     .from('payments')
     .update(payload)
@@ -173,12 +231,20 @@ export async function updatePayment(id: string, payload: Partial<Payment>) {
     .select()
     .single()
   if (error) throw error
+  await syncPaymentTotals(previous, data)
   return data
 }
 
 export async function deletePayment(id: string) {
+  const { data: previous } = await supabase
+    .from('payments')
+    .select('client_id, project_id')
+    .eq('id', id)
+    .single()
+
   const { error } = await supabase.from('payments').delete().eq('id', id)
   if (error) throw error
+  await syncPaymentTotals(previous)
 }
 
 // ─── DASHBOARD STATS ─────────────────────────────────────────
@@ -187,28 +253,42 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const now = new Date()
   const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
 
-  const [clients, projects, payments, monthPayments] = await Promise.all([
+  const [clients, projects, payments, monthPayments, projectPayments] = await Promise.all([
     supabase.from('clients').select('id, status'),
-    supabase.from('projects').select('id, status, progress, budget, paid_amount'),
+    supabase.from('projects').select('id, status, progress, budget'),
     supabase.from('payments').select('amount').eq('status', 'completed'),
     supabase
       .from('payments')
       .select('amount')
       .eq('status', 'completed')
       .gte('payment_date', firstOfMonth),
+    supabase
+      .from('payments')
+      .select('project_id, amount')
+      .eq('status', 'completed')
+      .not('project_id', 'is', null),
   ])
 
   const clientData = clients.data || []
   const projectData = projects.data || []
   const paymentData = payments.data || []
   const monthPaymentData = monthPayments.data || []
+  const projectPaymentData = projectPayments.data || []
 
   const completedProjects = projectData.filter((p) => p.progress === 100)
   const activeProjects = projectData.filter((p) => p.status === 'in_progress' || p.status === 'review')
 
-  // Pending payment = total outstanding balance across ALL projects where paid < budget
+  const paidByProject = projectPaymentData.reduce<Record<string, number>>((acc, payment) => {
+    if (payment.project_id) {
+      acc[payment.project_id] = (acc[payment.project_id] || 0) + (payment.amount || 0)
+    }
+    return acc
+  }, {})
+
+  // Pending payment = outstanding project balance, derived from completed payments.
+  // This avoids stale project.paid_amount values after payment edits.
   const pendingAmount = projectData.reduce(
-    (sum, p) => sum + Math.max(0, (p.budget || 0) - (p.paid_amount || 0)),
+    (sum, p) => sum + Math.max(0, (p.budget || 0) - (paidByProject[p.id] || 0)),
     0
   )
 
